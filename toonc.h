@@ -83,22 +83,21 @@ typedef struct toonParser {
 
 /* ======================= Memory Management ======================= */
 
-void *tmalloc(size_t size);
-void *tcalloc(size_t nmemb, size_t size);
-void *trealloc(void *ptr, size_t size);
-void tfree(void *ptr);
+void *TOONc_malloc(size_t size);
+void *TOONc_calloc(size_t nmemb, size_t size);
+void *TOONc_realloc(void *ptr, size_t size);
 
 /* ======================= Object Creation ======================= */
 
-toonObject *newObject(int kvtype);
-toonObject *newStringObj(char *s, size_t len);
-toonObject *newIntObj(int value);
-toonObject *newDoubleObj(double value);
-toonObject *newBoolObj(int value);
-toonObject *newNullObj(void);
-toonObject *newListObj(void);
+toonObject *TOONc_newObject(int kvtype);
+toonObject *TOONc_newStringObj(char *s, size_t len);
+toonObject *TOONc_newIntObj(int value);
+toonObject *TOONc_newDoubleObj(double value);
+toonObject *TOONc_newBoolObj(int value);
+toonObject *TOONc_newNullObj(void);
+toonObject *TOONc_newListObj(void);
 
-void listPush(toonObject *list, toonObject *item);
+void TOONc_listPush(toonObject *list, toonObject *item);
 
 /* ======================= Core API ======================= */
 
@@ -140,6 +139,19 @@ toonObject *TOONc_getArrayItem(toonObject *arr, size_t index);
 size_t TOONc_getArrayLength(toonObject *arr);
 
 /**
+ * Print recursively an object
+ * @param o Generic object
+ * @param depth Max indentation depth
+ */
+void TOONc_printObject(toonObject *o, int depth);
+
+/** 
+ * Print from root object (root excluded)
+ * @param root Root object
+ */
+void TOONc_printRoot(toonObject *root);
+
+/**
  * Free a TOON object tree recursively
  * @param obj Object to free
  */
@@ -152,11 +164,6 @@ void TOONc_free(toonObject *obj);
  * @param depth Initial indentation depth
  */
 void TOONc_toJSON(toonObject *obj, FILE *fp, int depth);
-
-/* ======================= Utility Functions ======================= */
-
-void printObject(toonObject *o, int depth);
-void printRoot(toonObject *root);
 
 /* ======================= Type Checking Macros ======================= */
 

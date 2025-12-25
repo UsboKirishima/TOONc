@@ -975,6 +975,70 @@ void TOONc_toJSON(toonObject *obj, FILE *fp, int depth) {
 }
 
 /* -----------------------------------------------------------------------------
+ * Cure API function aliases
+ *
+ * Some function aliases for internal helpers.
+ * -------------------------------------------------------------------------- */
+
+/* Public utility functions */
+
+void TOONc_printRoot(toonObject *root) {
+    printRoot(root);
+}
+
+void TOONc_printObject(toonObject *o, int depth) {
+    printObject(o, depth);
+}
+
+/* Public object creation functions */
+
+toonObject *TOONc_newObject(int kvtype) {
+    return newObject(kvtype);
+}
+
+toonObject *TOONc_newStringObj(char *s, size_t len) {
+    return newStringObj(s, len);
+}
+
+toonObject *TOONc_newIntObj(int value) {
+    return newIntObj(value);
+}
+
+toonObject *TOONc_newDoubleObj(double value) {
+    return newDoubleObj(value);
+}
+
+toonObject *TOONc_newBoolObj(int value) {
+    return newBoolObj(value);
+}
+
+toonObject *TOONc_newNullObj(void) {
+    return newNullObj();
+}
+
+toonObject *TOONc_newListObj(void) {
+    return newListObj();
+}
+
+/* Public allocation functions */
+
+void TOONc_listPush(toonObject *list, toonObject *item) {
+    listPush(list, item);
+}
+
+void *TOONc_malloc(size_t size) {
+    return tmalloc(size);
+}
+
+void *TOONc_calloc(size_t nmemb, size_t size) {
+    return tcalloc(nmemb, size);
+}
+
+void *TOONc_realloc(void *ptr, size_t size) {
+    return trealloc(ptr, size);
+}
+
+/* -----------------------------------------------------------------------------
  * Example usage
  * -------------------------------------------------------------------------- */
 
