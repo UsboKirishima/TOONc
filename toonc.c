@@ -807,6 +807,29 @@ toonObject *TOONc_parseString(const char *str) {
 }
 
 /* -----------------------------------------------------------------------------
+ * Array querying and manipulation
+ * -------------------------------------------------------------------------- */
+
+/* Returns the specified item of the array */
+toonObject *TOONc_getArrayItem(toonObject *arr, size_t index) {
+    if (!TOON_IS_LIST(arr)) goto error;
+    
+    size_t len = arr->array.len;
+    if (index > len || index < 0) goto error;
+
+    return arr->array.items[index];
+
+error:
+    return NULL;
+}
+
+size_t TOONc_getArrayLength(toonObject *arr) {
+    if (!TOON_IS_LIST(arr)) return -1;
+
+    return arr->array.len;
+}
+
+/* -----------------------------------------------------------------------------
  * Output and debugging functions
  * -------------------------------------------------------------------------- */
 
@@ -981,12 +1004,13 @@ int main(int argc, char **argv) {
     if (task) {
         printf("context.task = \"%s\"\n", TOON_GET_STRING(task));
     }
-    
+
     toonObject *friends = TOONc_get(root, "friends");
+    printf("friends length = %lu\n", TOONc_getArrayLength(friends));
     if (friends && TOON_IS_LIST(friends)) {
-        printf("friends[0] = \"%s\"\n", TOON_GET_STRING(friends->array.items[0]));
-        printf("friends[1] = \"%s\"\n", TOON_GET_STRING(friends->array.items[1]));
-        printf("friends[2] = \"%s\"\n", TOON_GET_STRING(friends->array.items[2]));
+        printf("friends[0] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 0)));
+        printf("friends[1] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 1)));
+        printf("friends[2] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 2)));
     }
     
     /* Clean up. */
