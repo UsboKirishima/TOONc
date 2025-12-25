@@ -125,6 +125,21 @@ toonObject *TOONc_parseString(const char *str);
 toonObject *TOONc_get(toonObject *root, const char *path);
 
 /**
+ * Get item of an array 
+ * @param arr Array object
+ * @param index Array index
+ * @return The indexed item or NULL 
+ */
+toonObject *TOONc_getArrayItem(toonObject *arr, size_t index);
+
+/**
+ * Get the array length
+ * @param arr Array object
+ * @return Number (size_t) of items or -1
+ */
+size_t TOONc_getArrayLength(toonObject *arr);
+
+/**
  * Free a TOON object tree recursively
  * @param obj Object to free
  */
