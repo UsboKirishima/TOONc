@@ -1040,46 +1040,11 @@ void *TOONc_realloc(void *ptr, size_t size) {
 
 /* -----------------------------------------------------------------------------
  * Example usage
+ * (see /examples)
  * -------------------------------------------------------------------------- */
 
-#if 1
-int main(int argc, char **argv) {
-    FILE *fp = fopen("sample.toon", "r");
-    if (!fp) {
-        perror("fopen");
-        return 1;
-    }
-
-    /* Parse the TOON file. */
-    toonObject *root = TOONc_parseFile(fp);
-    
-    /* Print the structure for debugging. */
-    printf("=== TOON Structure ===\n");
-    printRoot(root);
-    
-    /* Convert to JSON. */
-    printf("\n=== JSON Output ===\n");
-    TOONc_toJSON(root, stdout, 0);
-    printf("\n");
-    
-    /* Demonstrate path-based queries. */
-    printf("\n=== Testing TOONc_get ===\n");
-    toonObject *task = TOONc_get(root, "context.task");
-    if (task) {
-        printf("context.task = \"%s\"\n", TOON_GET_STRING(task));
-    }
-
-    toonObject *friends = TOONc_get(root, "friends");
-    printf("friends length = %lu\n", TOONc_getArrayLength(friends));
-    if (friends && TOON_IS_LIST(friends)) {
-        printf("friends[0] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 0)));
-        printf("friends[1] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 1)));
-        printf("friends[2] = \"%s\"\n", TOON_GET_STRING(TOONc_getArrayItem(friends, 2)));
-    }
-    
-    /* Clean up. */
-    TOONc_free(root);
-    
+#if 0
+int main(void) {
     return 0;
 }
 #endif

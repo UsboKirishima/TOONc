@@ -830,7 +830,7 @@ users[3]{id,username,email,active}:
 
 ## License
 
-BSD 3-Clause License. See source files for details.
+MIT License. See source files for details.
 
 ## Author
 
