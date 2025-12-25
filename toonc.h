@@ -35,75 +35,17 @@ extern "C" {
 #endif
 
 #include <stddef.h>
-
-/* List markers */
-#define LIST_ITEM_MARKER (2 << 0)
-#define LIST_ITEM_PREFIX (2 << 1)
-
-/* Structural characters */
-#define COMMA   (2 << 2)
-#define COLON   (2 << 3)
-#define SPACE   (2 << 4)
-#define PIPE    (2 << 5)
-#define DOT     (2 << 6)
-
-char STRUCT_CHARS[] = {
-    [COMMA] = ',',
-    [COLON] = ':',
-    [SPACE] = ' ',
-    [PIPE]  = '|',
-    [DOT]   = '.'
-};
-
-/* Brackets and braces */
-#define OPEN_BRACKET    (2 << 7)
-#define CLOSE_BRACKET   (2 << 8)
-#define OPEN_BRACE      (2 << 9)
-#define CLOSE_BRACE     (2 << 10)
-
-/* Escape characters */
-#define BACKSLASH       (2 << 11)
-#define DOUBLE_QUOTE    (2 << 12)
-#define NEWLINE         (2 << 13)
-#define CARRIAGE_RETURN (2 << 14)
-#define TAB             (2 << 15)
-
-/* Error severity */
-#define ERR_ERR     (2 << 0)
-#define ERR_WARN    (2 << 1)
-#define ERR_FATAL   (2 << 2)
+#include <stdio.h>
 
 /* ===================== Key-value types ======================*/
-#define KV_STRING 0 /* i.e. name: Bob */
-#define KV_INT    1 /* i.e. age: 21 */
-#define KV_BOOL   2 /* i.e. married: false */
-#define KV_NULL   3 /* i.e. `job: ` */
-#define KV_DOUBLE 4 /* i.e. height: 180.42 */
-
-/* KW_OBJ - Object value type
- *
- * car:
- *     model: Fiat panda 4x4
- *     year: 2014 
- */
-#define KV_OBJ    5 
-#define KV_LIST   6 /* i.e. nicknames[3]: bobby,bub,bibi */
-/* KW_LOBJ - List object value type 
- *
- * JSON:
- *  {
- *      "children": [
- *          { "name": "Alice", "age": 12 },
- *          { "name": "Luke", "age": 20 }
- *      ] 
- *  }
- *
- * TOON:
- * children[2]{name,age}:
- *          Alice,12
- *          Luke,20
- */
-#define KV_LOBJ   7 
+#define KV_STRING 0
+#define KV_INT    1
+#define KV_BOOL   2
+#define KV_NULL   3
+#define KV_DOUBLE 4
+#define KV_OBJ    5
+#define KV_LIST   6
+#define KV_LOBJ   7
 
 /* ======================= Data Structures ======================= */
 
@@ -113,16 +55,15 @@ struct toonStr {
 };
 
 typedef struct toonObject {
-    int kvtype; /* KV_STRING, KV_OBJ ... */
-    int indent; /* Indentation level */
-    char *key; /* property name */
+    int kvtype;
+    int indent;
+    char *key;
     union {
         struct toonStr str;
         int i;
         double d;
-        int boolean:1;
+        int boolean;
         
-        /* Array data type */
         struct {
             struct toonObject **items;
             size_t len;
@@ -130,27 +71,97 @@ typedef struct toonObject {
         } array;
     };
 
-    struct toonObject *child; /* for recursive types */
-    struct toonObject *next; /* next object (linked list) */
+    struct toonObject *child;
+    struct toonObject *next;
 } toonObject;
 
-/* Minimal toonParser object */
 typedef struct toonParser {
-    char *source; /* the original text */
-    char *p; /* current cursor position */
-    int line; /* current line numbner for error checking */
+    char *source;
+    char *p;
+    int line;
 } toonParser;
 
-/* Rapresentation of the parsing error */
-typedef struct {
-    char *message; 
-    int line; 
-    int column; 
-    int severity; /* error type (ERR_ERR, ERR_WARN, ...) */
-} parseError;
+/* ======================= Memory Management ======================= */
+
+void *tmalloc(size_t size);
+void *tcalloc(size_t nmemb, size_t size);
+void *trealloc(void *ptr, size_t size);
+void tfree(void *ptr);
+
+/* ======================= Object Creation ======================= */
+
+toonObject *newObject(int kvtype);
+toonObject *newStringObj(char *s, size_t len);
+toonObject *newIntObj(int value);
+toonObject *newDoubleObj(double value);
+toonObject *newBoolObj(int value);
+toonObject *newNullObj(void);
+toonObject *newListObj(void);
+
+void listPush(toonObject *list, toonObject *item);
+
+/* ======================= Core API ======================= */
+
+/**
+ * Parse a TOON file
+ * @param fp File pointer (will be closed by this function)
+ * @return Root toonObject or NULL on error
+ */
+toonObject *TOONc_parseFile(FILE *fp);
+
+/**
+ * Parse a TOON string
+ * @param str TOON formatted string
+ * @return Root toonObject or NULL on error
+ */
+toonObject *TOONc_parseString(const char *str);
+
+/**
+ * Get an object by path (dot notation)
+ * @param root Root object
+ * @param path Path like "context.task" or "friends"
+ * @return Found object or NULL
+ */
+toonObject *TOONc_get(toonObject *root, const char *path);
+
+/**
+ * Free a TOON object tree recursively
+ * @param obj Object to free
+ */
+void TOONc_free(toonObject *obj);
+
+/**
+ * Convert TOON object to JSON
+ * @param obj Object to convert
+ * @param fp Output file pointer
+ * @param depth Initial indentation depth
+ */
+void TOONc_toJSON(toonObject *obj, FILE *fp, int depth);
+
+/* ======================= Utility Functions ======================= */
+
+void printObject(toonObject *o, int depth);
+void printRoot(toonObject *root);
+
+/* ======================= Type Checking Macros ======================= */
+
+#define TOON_IS_STRING(obj)  ((obj) && (obj)->kvtype == KV_STRING)
+#define TOON_IS_INT(obj)     ((obj) && (obj)->kvtype == KV_INT)
+#define TOON_IS_DOUBLE(obj)  ((obj) && (obj)->kvtype == KV_DOUBLE)
+#define TOON_IS_BOOL(obj)    ((obj) && (obj)->kvtype == KV_BOOL)
+#define TOON_IS_NULL(obj)    ((obj) && (obj)->kvtype == KV_NULL)
+#define TOON_IS_LIST(obj)    ((obj) && (obj)->kvtype == KV_LIST)
+#define TOON_IS_OBJ(obj)     ((obj) && (obj)->kvtype == KV_OBJ)
+
+/* ======================= Value Getters ======================= */
+
+#define TOON_GET_STRING(obj) (TOON_IS_STRING(obj) ? (obj)->str.ptr : NULL)
+#define TOON_GET_INT(obj)    (TOON_IS_INT(obj) ? (obj)->i : 0)
+#define TOON_GET_DOUBLE(obj) (TOON_IS_DOUBLE(obj) ? (obj)->d : 0.0)
+#define TOON_GET_BOOL(obj)   (TOON_IS_BOOL(obj) ? (obj)->boolean : 0)
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
 #endif /* _TOONC_H */
