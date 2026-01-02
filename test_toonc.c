@@ -1254,8 +1254,8 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused))) 
     printf("\n");
     printf(COLOR_BOLD COLOR_CYAN);
     printf("╔════════════════════════════════════════════════════════╗\n");
-    printf("║       TOONc Test Suite - Professional Edition         ║\n");
-    printf("║  Token-Oriented Object Notation Parser Library        ║\n");
+    printf("║                     TOONc Test Suite                   ║\n");
+    printf("║   Token-Oriented Object Notation Parser Library        ║\n");
     printf("╚════════════════════════════════════════════════════════╝\n");
     printf(COLOR_RESET "\n");
     
@@ -1330,14 +1330,14 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused))) 
     if (g_stats.failed == 0) {
         printf(COLOR_GREEN COLOR_BOLD);
         printf("  ╔══════════════════════════════════════════╗\n");
-        printf("  ║   ✓ ALL TESTS PASSED SUCCESSFULLY! ✓    ║\n");
+        printf("  ║    ✓ ALL TESTS PASSED SUCCESSFULLY! ✓    ║\n");
         printf("  ╚══════════════════════════════════════════╝\n");
         printf(COLOR_RESET "\n");
         return EXIT_SUCCESS;
     } else {
         printf(COLOR_RED COLOR_BOLD);
         printf("  ╔══════════════════════════════════════════╗\n");
-        printf("  ║   ✗ SOME TESTS FAILED - SEE ABOVE ✗     ║\n");
+        printf("  ║    ✗ SOME TESTS FAILED - SEE ABOVE ✗     ║\n");
         printf("  ╚══════════════════════════════════════════╝\n");
         printf(COLOR_RESET "\n");
         return EXIT_FAILURE;

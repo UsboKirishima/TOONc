@@ -46,6 +46,22 @@ Link with:
 gcc your_program.c -L. -ltoonc -o your_program
 ```
 
+## Examples
+
+The `examples/` directory contains a comprehensive set of examples demonstrating various features of the library. You can compile and run all examples using the following command from the root directory of the project:
+
+```bash
+make run-examples
+```
+
+Here is a brief overview of the available examples:
+
+- **[01_basic_config.c](examples/01_basic_config.c)**: Shows how to parse a basic configuration file with nested objects and different value types.
+- **[02_array_processing.c](examples/02_array_processing.c)**: Demonstrates how to read and process simple arrays of strings and numbers.
+- **[03_tabular_data.c](examples/03_tabular_data.c)**: Shows how to parse and query tabular data, where each row is an object.
+- **[04_programmatic_creation.c](examples/04_programmatic_creation.c)**: Illustrates how to create a `toonObject` tree programmatically in memory.
+- **[05_json_conversion.c](examples/05_json_conversion.c)**: Shows how to convert a parsed TOON object into JSON format.
+
 ## Data Structures
 
 ### toonObject
@@ -57,13 +73,13 @@ typedef struct toonObject {
     int kvtype;           /* Type: KV_STRING, KV_INT, KV_BOOL, etc. */
     int indent;           /* Indentation level (0-based) */
     char *key;            /* Property name (NULL for array items) */
-    
+
     union {
         struct toonStr str;    /* String value */
         int i;                 /* Integer value */
         double d;              /* Double value */
         int boolean;           /* Boolean value (0 or 1) */
-        
+
         struct {               /* Array data */
             struct toonObject **items;
             size_t len;
@@ -99,9 +115,11 @@ toonObject *TOONc_parseFile(FILE *fp);
 ```
 
 **Parameters:**
+
 - `fp` - File pointer (will be closed by this function)
 
 **Returns:**
+
 - Root `toonObject` or `NULL` on error
 
 **Example:**
@@ -137,9 +155,11 @@ toonObject *TOONc_parseString(const char *str);
 ```
 
 **Parameters:**
+
 - `str` - TOON formatted string
 
 **Returns:**
+
 - Root `toonObject` or `NULL` on error
 
 **Example:**
@@ -174,9 +194,11 @@ void *TOONc_malloc(size_t size);
 ```
 
 **Parameters:**
+
 - `size` - Number of bytes to allocate
 
 **Returns:**
+
 - Pointer to allocated memory (never returns NULL, exits on failure)
 
 #### TOONc_calloc
@@ -188,10 +210,12 @@ void *TOONc_calloc(size_t nmemb, size_t size);
 ```
 
 **Parameters:**
+
 - `nmemb` - Number of elements
 - `size` - Size of each element
 
 **Returns:**
+
 - Pointer to allocated memory (never returns NULL, exits on failure)
 
 #### TOONc_realloc
@@ -203,10 +227,12 @@ void *TOONc_realloc(void *ptr, size_t size);
 ```
 
 **Parameters:**
+
 - `ptr` - Pointer to existing memory block
 - `size` - New size in bytes
 
 **Returns:**
+
 - Pointer to reallocated memory (never returns NULL, exits on failure)
 
 ### Object Creation
@@ -220,9 +246,11 @@ toonObject *TOONc_newObject(int kvtype);
 ```
 
 **Parameters:**
+
 - `kvtype` - Type constant (KV_STRING, KV_INT, KV_OBJ, etc.)
 
 **Returns:**
+
 - New object with all fields zeroed
 
 **Example:**
@@ -240,10 +268,12 @@ toonObject *TOONc_newStringObj(char *s, size_t len);
 ```
 
 **Parameters:**
+
 - `s` - Pointer to string data
 - `len` - Length of string
 
 **Returns:**
+
 - New string object
 
 **Example:**
@@ -334,6 +364,7 @@ void TOONc_listPush(toonObject *list, toonObject *item);
 ```
 
 **Parameters:**
+
 - `list` - Array object (must be `KV_LIST`)
 - `item` - Object to add
 
@@ -357,10 +388,12 @@ toonObject *TOONc_get(toonObject *root, const char *path);
 ```
 
 **Parameters:**
+
 - `root` - Root object to search from
 - `path` - Dot-separated path (e.g., "context.task")
 
 **Returns:**
+
 - Found object or `NULL` if path doesn't exist
 
 **Example:**
@@ -392,10 +425,12 @@ toonObject *TOONc_getArrayItem(toonObject *arr, size_t index);
 ```
 
 **Parameters:**
+
 - `arr` - Array object
 - `index` - Zero-based index
 
 **Returns:**
+
 - Object at the specified index or `NULL` if out of bounds
 
 **Example:**
@@ -409,7 +444,7 @@ toonObject *friends = TOONc_get(root, "friends");
 if (TOON_IS_LIST(friends)) {
     toonObject *first = TOONc_getArrayItem(friends, 0);
     printf("First friend: %s\n", TOON_GET_STRING(first));
-    
+
     toonObject *second = TOONc_getArrayItem(friends, 1);
     printf("Second friend: %s\n", TOON_GET_STRING(second));
 }
@@ -424,9 +459,11 @@ size_t TOONc_getArrayLength(toonObject *arr);
 ```
 
 **Parameters:**
+
 - `arr` - Array object
 
 **Returns:**
+
 - Number of elements or 0 if not an array
 
 **Example:**
@@ -436,7 +473,7 @@ toonObject *friends = TOONc_get(root, "friends");
 if (TOON_IS_LIST(friends)) {
     size_t count = TOONc_getArrayLength(friends);
     printf("You have %zu friends\n", count);
-    
+
     for (size_t i = 0; i < count; i++) {
         toonObject *friend = TOONc_getArrayItem(friends, i);
         printf("  %zu: %s\n", i + 1, TOON_GET_STRING(friend));
@@ -453,6 +490,7 @@ void TOONc_free(toonObject *obj);
 ```
 
 **Parameters:**
+
 - `obj` - Object to free
 
 **Example:**
@@ -479,6 +517,7 @@ void TOONc_printObject(toonObject *o, int depth);
 ```
 
 **Parameters:**
+
 - `o` - Object to print
 - `depth` - Initial indentation depth (usually 0)
 
@@ -522,6 +561,7 @@ void TOONc_toJSON(toonObject *obj, FILE *fp, int depth);
 ```
 
 **Parameters:**
+
 - `obj` - Object to convert
 - `fp` - Output file pointer (e.g., `stdout`)
 - `depth` - Initial indentation depth (usually 0)
@@ -592,182 +632,11 @@ int age_val = TOON_GET_INT(age);
 printf("Age: %d\n", age_val);
 ```
 
-## Examples
-
-### Example 1: Basic Configuration File
-
-**config.toon:**
-
-```toon
-app_name: MyApplication
-version: 1.0.0
-debug: true
-port: 8080
-database:
-  host: localhost
-  port: 5432
-  name: mydb
-```
-
-**Code:**
-
-```c
-#include "toonc.h"
-
-int main(void) {
-    FILE *fp = fopen("config.toon", "r");
-    toonObject *root = TOONc_parseFile(fp);
-    
-    /* Get simple values */
-    toonObject *app_name = TOONc_get(root, "app_name");
-    printf("App: %s\n", TOON_GET_STRING(app_name));
-    
-    toonObject *port = TOONc_get(root, "port");
-    printf("Port: %d\n", TOON_GET_INT(port));
-    
-    toonObject *debug = TOONc_get(root, "debug");
-    printf("Debug: %s\n", TOON_GET_BOOL(debug) ? "enabled" : "disabled");
-    
-    /* Get nested values */
-    toonObject *db_host = TOONc_get(root, "database.host");
-    printf("DB Host: %s\n", TOON_GET_STRING(db_host));
-    
-    TOONc_free(root);
-    return 0;
-}
-```
-
-### Example 2: Array Processing
-
-**data.toon:**
-
-```toon
-users[3]: alice,bob,charlie
-scores[3]: 95,87,92
-```
-
-**Code:**
-
-```c
-#include "toonc.h"
-
-int main(void) {
-    FILE *fp = fopen("data.toon", "r");
-    toonObject *root = TOONc_parseFile(fp);
-    
-    /* Process users array */
-    toonObject *users = TOONc_get(root, "users");
-    size_t user_count = TOONc_getArrayLength(users);
-    
-    printf("Users (%zu):\n", user_count);
-    for (size_t i = 0; i < user_count; i++) {
-        toonObject *user = TOONc_getArrayItem(users, i);
-        printf("  - %s\n", TOON_GET_STRING(user));
-    }
-    
-    /* Calculate average score */
-    toonObject *scores = TOONc_get(root, "scores");
-    size_t score_count = TOONc_getArrayLength(scores);
-    int total = 0;
-    
-    for (size_t i = 0; i < score_count; i++) {
-        toonObject *score = TOONc_getArrayItem(scores, i);
-        total += TOON_GET_INT(score);
-    }
-    
-    printf("Average score: %.2f\n", (double)total / score_count);
-    
-    TOONc_free(root);
-    return 0;
-}
-```
-
-### Example 3: Tabular Data
-
-**hikes.toon:**
-
-```toon
-hikes[3]{id,name,distanceKm,elevationGain}:
-  1,Blue Lake Trail,7.5,320
-  2,Ridge Overlook,9.2,540
-  3,Wildflower Loop,5.1,180
-```
-
-**Code:**
-
-```c
-#include "toonc.h"
-
-int main(void) {
-    FILE *fp = fopen("hikes.toon", "r");
-    toonObject *root = TOONc_parseFile(fp);
-    
-    toonObject *hikes = TOONc_get(root, "hikes");
-    size_t hike_count = TOONc_getArrayLength(hikes);
-    
-    printf("Hikes:\n");
-    for (size_t i = 0; i < hike_count; i++) {
-        toonObject *hike = TOONc_getArrayItem(hikes, i);
-        
-        toonObject *name = TOONc_get(hike, "name");
-        toonObject *distance = TOONc_get(hike, "distanceKm");
-        toonObject *elevation = TOONc_get(hike, "elevationGain");
-        
-        printf("  %zu. %s - %.1f km, %d m elevation\n",
-               i + 1,
-               TOON_GET_STRING(name),
-               TOON_GET_DOUBLE(distance),
-               TOON_GET_INT(elevation));
-    }
-    
-    TOONc_free(root);
-    return 0;
-}
-```
-
-### Example 4: Programmatic Object Creation
-
-```c
-#include "toonc.h"
-
-int main(void) {
-    /* Create root object */
-    toonObject *root = TOONc_newObject(KV_OBJ);
-    
-    /* Create a simple property */
-    toonObject *name = TOONc_newStringObj("John Doe", 8);
-    name->key = strdup("name");
-    
-    toonObject *age = TOONc_newIntObj(30);
-    age->key = strdup("age");
-    
-    /* Create an array */
-    toonObject *hobbies = TOONc_newListObj();
-    hobbies->key = strdup("hobbies");
-    TOONc_listPush(hobbies, TOONc_newStringObj("reading", 7));
-    TOONc_listPush(hobbies, TOONc_newStringObj("hiking", 6));
-    TOONc_listPush(hobbies, TOONc_newStringObj("coding", 6));
-    
-    /* Link properties to root */
-    root->child = name;
-    name->next = age;
-    age->next = hobbies;
-    
-    /* Output as JSON */
-    TOONc_toJSON(root, stdout, 0);
-    printf("\n");
-    
-    /* Clean up */
-    TOONc_free(root);
-    return 0;
-}
-```
-
 ## TOON Format
 
 ### Basic Syntax
 
-```toon
+```yaml
 # Comments start with #
 key: value
 number: 42
@@ -779,7 +648,7 @@ quoted: "string with spaces"
 
 ### Nested Objects
 
-```toon
+```yaml
 parent:
   child1: value1
   child2: value2
@@ -789,7 +658,7 @@ parent:
 
 ### Simple Arrays
 
-```toon
+```yaml
 numbers[3]: 1,2,3
 names[4]: alice,bob,charlie,diana
 mixed[2]: 42,hello
@@ -806,7 +675,7 @@ users[3]{id,name,email,age}:
 
 ### Complete Example
 
-```toon
+```yaml
 # Application Configuration
 app:
   name: MyApp

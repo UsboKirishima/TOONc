@@ -1,0 +1,4 @@
+hikes[3]{id,name,distanceKm,elevationGain}:
+  1,Blue Lake Trail,7.5,320
+  2,Ridge Overlook,9.2,540
+  3,Wildflower Loop,5.1,180
