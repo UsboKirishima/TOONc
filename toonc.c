@@ -56,6 +56,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <ctype.h>
+#include <limits.h>
+#include <errno.h>
 
 /* -----------------------------------------------------------------------------
  * Compiler-specific optimization macros
@@ -79,6 +81,13 @@
     #define LIKELY(x)   (x)
     #define UNLIKELY(x) (x)
 #endif
+
+/* -----------------------------------------------------------------------------
+ * Prototypes
+ * -------------------------------------------------------------------------- */
+FORCE_INLINE void skipLine(toonParser *parser);
+FORCE_INLINE int isCommentOrEmpty(toonParser *parser);
+
 
 /* -----------------------------------------------------------------------------
  * Memory allocation wrappers
@@ -329,7 +338,9 @@ char *parseKey(toonParser *parser, size_t *len) {
     char *end = parser->p;
 
     /* Trim trailing whitespace. */
-    while (end > start && isspace((unsigned char)*(end - 1))) 
+    while (start < end && isspace((unsigned char) * start)) 
+        start++;
+    while (end > start && isspace((unsigned char) * (end - 1)))
         end--;
 
     *len = end - start;
@@ -366,6 +377,11 @@ char **parseTableColumns(toonParser *parser, int *col_count) {
         if (*temp == ',') count++;
         temp++;
     }
+
+    if (*temp != '}') {
+        fprintf(stderr, "Syntax error: missing '}' in table columns\n");
+        return NULL;
+    }
     
     /* Allocate space for column names. */
     char **columns = tmalloc(sizeof(char *) * count);
@@ -379,6 +395,14 @@ char **parseTableColumns(toonParser *parser, int *col_count) {
         }
         
         size_t len = parser->p - start;
+        
+        if (idx >= count) {
+            for (int i = 0; i < idx; i++)
+                tfree(columns[i]);
+            tfree(columns);
+            return NULL;
+        }
+
         columns[idx] = tmalloc(len + 1);
         memcpy(columns[idx], start, len);
         columns[idx][len] = '\0';
@@ -432,6 +456,41 @@ int isNumber(char *s, size_t len, int *is_float) {
     return i == len; /* Success if we consumed the entire string */
 }
 
+toonObject *parseNumber(char *start, size_t len, int is_float) {
+    char buf[128];
+    if (len >= sizeof(buf)) {
+        /* number too long */
+        return newStringObj(start, len);
+    }
+
+    memcpy(buf, start, len);
+    buf[len] = '\0';
+
+    if (is_float) {
+        errno = 0;
+        char *endptr;
+        double val = strtod(buf, &endptr);
+
+        if (errno == ERANGE || endptr != buf + len) {
+            /* Overflow or incomplete parsing */
+            return newStringObj(start, len);
+        }
+
+        return newDoubleObj(val);
+    }
+
+    errno = 0;
+    char *endptr;
+    long val = strtol(buf, &endptr, 10);
+
+    if (errno == ERANGE || val > INT_MAX || val < INT_MIN || endptr != buf + len) {
+        /* Overflow or out of bounds int */
+        return newStringObj(start, len);
+    } 
+
+    return newIntObj((int)val);
+}
+
 /* Parse a single value from the input. Values are terminated by newline
  * or comma (for array elements). Returns NULL for empty values, which
  * indicates a nested object follows. */
@@ -446,17 +505,25 @@ toonObject *parseValue(toonParser *parser) {
     char *start = parser->p;
 
     /* Scan to end of value (newline or comma). */
-    while (parser->p[0] && parser->p[0] != '\n' && parser->p[0] != ',') 
+    while (parser->p[0] &&
+            parser->p[0] != '\n' &&
+            parser->p[0] != ',' &&
+            parser->p[0] != '#')
         parser->p++;
 
     char *end = parser->p;
+    
+    if (parser->p[0] == '#') {
+        while (parser->p[0] && parser->p[0] != '\n') {
+            parser->p++;
+        }
+    }
 
     /* Trim whitespace from both ends. */
-    while (start < end && isspace((unsigned char)*start)) start++;
-    while (end > start && isspace((unsigned char)*(end-1))) end--;
+    while (start < end && isspace((unsigned char) * start)) start++;
+    while (end > start && isspace((unsigned char) * (end - 1))) end--;
     
     size_t len = end - start;
-    if (len == 0) return newNullObj();
 
     /* Check for quoted strings. */
     int quotes = 0;
@@ -470,6 +537,8 @@ toonObject *parseValue(toonParser *parser) {
     /* Quoted values are always strings. */
     if (quotes) 
         return newStringObj(start, len);
+
+    if (len == 0) return newNullObj();
 
     /* Check for boolean literals. */
     if (len == 4 && strncmp(start, "true", 4) == 0) {
@@ -487,14 +556,7 @@ toonObject *parseValue(toonParser *parser) {
     /* Try to parse as a number. */
     int is_float;
     if (isNumber(start, len, &is_float)) {
-        char buf[128];
-        if (len < sizeof(buf)) {
-            memcpy(buf, start, len);
-            buf[len] = '\0';
-
-            return is_float ? newDoubleObj(atof(buf)) 
-                : newIntObj(atoi(buf));
-        }
+        return parseNumber(start, len, is_float);
     }
     
     /* Default: treat as unquoted string. */
@@ -517,6 +579,12 @@ toonObject *parseListValues(toonParser *parser) {
         }
     }
 
+    /* If comment is found skip the rest of the line */
+    if (parser->p[0] == '#') {
+        while (parser->p[0] && parser->p[0] != '\n')
+            parser->p++;
+    }
+
     return arr;
 }
 
@@ -527,15 +595,33 @@ toonObject *parseListValues(toonParser *parser) {
  *     1,Blue Lake,7.5
  *     2,Ridge Overlook,9.2
  */
-toonObject *parseTableRows(toonParser *parser, char **columns, int col_count, int expected_rows) {
+toonObject *parseTableRows(toonParser *parser, char **columns, int col_count,
+        int expected_rows) {
     toonObject *table = newListObj();
     
     for (int row = 0; row < expected_rows; row++) {
         parseNewLine(parser);
+      
+        /* Check for EOF */
+        //if (parser->p[0] == '\0') break;
+        /* Skip blank lines and comments */
+        if (isCommentOrEmpty(parser)) {
+            skipLine(parser);
+            continue;
+        }
+
+        /* EOF */
+        if (parser->p[0] == '\0')
+            break;
         parseSpaces(parser);
-        
+
         /* End of data or empty line terminates the table. */
-        if (parser->p[0] == '\n' || parser->p[0] == '\0') break;
+        //if (parser->p[0] == '\n' || parser->p[0] == '\0') break;
+
+        if (parser->p[0] == '#') {
+            skipLine(parser);
+            continue;
+        }
         
         /* Create an object for this row. */
         toonObject *rowObj = newObject(KV_OBJ);
@@ -573,8 +659,14 @@ toonObject *parseTableRows(toonParser *parser, char **columns, int col_count, in
 
 /* Check if the current line is a comment (starts with #) or blank. */
 FORCE_INLINE int isCommentOrEmpty(toonParser *parser) {
-    parseSpaces(parser);
-    return parser->p[0] == '#' || parser->p[0] == '\n' || parser->p[0] == '\0';
+    char *temp = parser->p;
+
+    /* Skip whitespaces */
+    while (*temp == ' ' || *temp == '\t') 
+        temp++;
+
+    /* Check for inline comments */
+    return *temp == '#' || *temp == '\n' || *temp == '\0';
 }
 
 /* Skip the rest of the current line. */
@@ -598,6 +690,19 @@ toonObject *parse(char *source) {
     parser.p = source;
     parser.line = 1;
 
+#if 0
+    static int iteration = 0;
+    iteration++;
+    if (iteration > 10000) {
+        fprintf(stderr, "DEADLOCK DETECTED at line %d, char '%c' (0x%02x)\n",
+                parser.line, parser.p[0] ? parser.p[0] : '?', 
+                (unsigned char)parser.p[0]);
+        fprintf(stderr, "Position in source: %ld\n", parser.p - parser.source);
+        fprintf(stderr, "Context: %.50s\n", parser.p);
+        exit(1);
+    }
+#endif
+
     /* The root is always an object. */
     toonObject *root = newObject(KV_OBJ);
     
@@ -610,12 +715,10 @@ toonObject *parse(char *source) {
     while (parser.p[0]) {
         /* Skip blank lines and comments. */
         if (UNLIKELY(isCommentOrEmpty(&parser))) {
-            if (parser.p[0] == '#' || parser.p[0] == '\n') {
-                skipLine(&parser);
-            }
+            skipLine(&parser);
             continue;
         }
-        
+
         /* Parse indentation to determine nesting level. */
         int indent = parseIndent(&parser);
         
@@ -688,8 +791,14 @@ toonObject *parse(char *source) {
         /* Pop the stack back to the appropriate parent for this indent level.
          * If indent=0, parent is root. If indent=1, parent is the last
          * indent=0 object, and so on. */
-        while (stack_size > indent + 1) {
+        while (stack_size > 1 && stack[stack_size - 1]->indent >= indent)
             stack_size--;
+
+        /* Check for stack bounds */
+        if (stack_size <= 0) {
+            fprintf(stderr, "Internal error: stack underflow at line %d\n",
+                    parser.line);
+            stack_size = 1;
         }
 
         toonObject *parent = stack[stack_size - 1];
@@ -711,10 +820,21 @@ toonObject *parse(char *source) {
         if (!has_value && prop->kvtype == KV_OBJ) {
             if (stack_size < 64) {
                 stack[stack_size++] = prop;
+            } else {
+                fprintf(stderr, "Warning: max nesting depth exceeded at line %d\n",
+                        parser.line);
             }
         }
 
-        parseNewLine(&parser);
+        if (parser.p[0] == '\n') {
+            parseNewLine(&parser);
+        } else if (parser.p[0] == '\0') {
+            break;
+        } else {
+            fprintf(stderr, "Warning: unexpected character '%c' at line %d, skipping\n",
+                    parser.p[0], parser.line);
+            parser.p++;
+        }
     }
 
     tfree(stack);
@@ -815,7 +935,7 @@ toonObject *TOONc_getArrayItem(toonObject *arr, size_t index) {
     if (!TOON_IS_LIST(arr)) goto error;
     
     size_t len = arr->array.len;
-    if (index > len || index < 0) goto error;
+    if (index >= len) goto error;
 
     return arr->array.items[index];
 
